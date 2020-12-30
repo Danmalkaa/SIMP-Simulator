@@ -17,7 +17,7 @@ int searchforlabel(LABEL *label_list, char *label_name)
 		}
 	}
 	if (found == 0)
-		return (0);
+		return (-1);
 	else
 		return(result);
 }
