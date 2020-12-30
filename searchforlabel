@@ -1,0 +1,23 @@
+int searchforlabel(LABEL *label_list, char *label_name)
+{
+	int result, found;
+	LABEL *current;
+
+	current = label_list;
+	found = 0;
+	while (current != NULL)
+	{
+		if (strcmp(current->LABELNAME, label_name) == 0) {
+			found = 1;
+			result = current->labeladdress;
+			break;
+		}
+		else {
+			current = current->next;
+		}
+	}
+	if (found == 0)
+		return (0);
+	else
+		return(result);
+}
