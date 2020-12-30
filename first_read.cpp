@@ -7,61 +7,93 @@
 
 struct LABEL
 {
-	char LABELNAME[10];
-	long int labeladdress;
-	struct LABEL *next=NULL;
+	char LABELNAME[MAXLABELSIZE];
+	int labeladdress;
+	struct LABEL* next = NULL;
 };
 
-LABEL* first_read(char* file) {
-	FILE *fp;
-	char LINE[MAXSIZE], label_name[MAXLABELSIZE]; // a place to put the line and labels
-	int i,j,l;
-	LABEL* label_list = NULL;
-	LABEL *current = label_list;
+LABEL* create_label(char label_name[MAXLABELSIZE], int label_address) { //creat new label
+	LABEL *new_label;
 
-	fp = fopen(file, "r"); //open file, set fp to be pointer
-
-	if (fp == NULL){
-		printf("Unable to read file");
-			return NULL;
+	new_label = (LABEL*)malloc(sizeof(LABEL)); //allocate memmory for new label
+	if (new_label == NULL) {
+		printf("Fail to allocate memmory");
+		return NULL;
 	}
-	
-	while (feof == 0) { //read next line untill the end of the file
-		fgets(LINE, MAXSIZE, fp);
-		for (int i = 0; i < strlen(LINE); ++i) // run until define if there is a Label in this line
-			if (LINE[i] == '#') //we reached the comments sector, there will be no label
-				break;
-			else if (LINE[i] == ':'){ //found a label
-				l = 0;
-				for (j = 0; j < i; ++j) //copy the label name without white spaces
-					if (LINE[j] == ' ' or '\t')
-						continue;
-					else {
-						label_name[l] = LINE[j];
-						l++;
-					}
-				if (label_list == NULL) { //insert the first label
-					label_list = (LABEL*)malloc(sizeof(LABEL));
-					if (label_list == NULL) {
-						printf("Fail to allocate memmory");
-						return NULL;
-					}
-					strcpy(label_list->LABELNAME, label_name);
-					label_list->labeladdress = ftell(fp); //address in file in bytes
-					*current = *label_list->next;
-				}
-				else { //insert list of labels
-					current = (LABEL*)malloc(sizeof(LABEL));
-					if (current == NULL) {
-						printf("Fail to allocate memmory");
-						return NULL;
-					}
-					strcpy(current->LABELNAME, label_name);
-					current->labeladdress = ftell(fp); //address in file in bytes
-					*current = *current->next;
+	strcpy(new_label->LABELNAME, label_name); //give label name
+	new_label->labeladdress = label_address; //number of row
+	new_label->next = NULL;
+
+	return(new_label);
+}
+
+LABEL* first_read(FILE* rfile) {
+	char LINE[MAXSIZE]; // a place to put the line and labels
+	char strs[6][MAXLABELSIZE]; // a list for the registers name
+	int i, l, pc_counter, elements;
+	LABEL* label_list = NULL;
+	LABEL *current = NULL, *next_label;
+	char *ptr, *token;
+	const char clean[10] = " :,.-\t\n";
+
+	pc_counter = 0;
+	while (feof(rfile) == 0) { //read next line untill the end of the file
+		fgets(LINE, MAXSIZE, rfile);
+		ptr = strchr(LINE, '#'); //clear all string after '#'
+		if (ptr != NULL) {
+			*ptr = '\0';
+		}
+		token = strtok(LINE, clean); //break the string into tokens
+		elements = 0;
+		for (i = 0; i < 6; i++) { // insert the tokens into the list, if there is nothing left insert NULL
+			if (token == NULL) {
+				strs[i][0] = NULL;
+				token = strtok(NULL, clean);
+			}
+			else {
+				strcpy(strs[i], token);
+				token = strtok(NULL, clean);
+				elements++;
+			}
+		}
+		if (elements == 1) {//there is only label in this row
+			if (label_list == NULL) { //insert the first label
+				label_list = create_label(strs[0], pc_counter);
+				current = label_list;
+			}
+			else {
+				next_label = create_label(strs[0], pc_counter);//insert new label
+				current->next = next_label;
+				current = current->next;
+			}
+		}
+		else if (elements == 6) { //this is a row with label and command
+			if (label_list == NULL) { //insert the first label
+				label_list = create_label(strs[0], pc_counter);
+				current = label_list;
+			}
+			else {
+				next_label = create_label(strs[0], pc_counter);//insert new label
+				current->next = next_label;
+				current = current->next;
+			}
+			pc_counter += 2; //progress the pc counter by 2
+		}
+		else if (elements == 0)
+			continue;
+		else {
+			l = 0;
+			for (i = 0; i < 6; i++) {
+				if (strcmp("$imm", strs[i]) == 0) {
+					pc_counter += 2;
+					l = 1;
+					break;
 				}
 			}
+			if (l == 0)
+				pc_counter += 1;
+		}
 	}
-	fclose(fp);
+
 	return (label_list);
 }
