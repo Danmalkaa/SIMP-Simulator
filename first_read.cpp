@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,12 +7,12 @@
 #define MAXSIZE 80
 #define MAXLABELSIZE 10
 
-struct LABEL
+typedef struct LABEL
 {
 	char LABELNAME[MAXLABELSIZE];
 	int labeladdress;
-	struct LABEL* next = NULL;
-};
+	struct LABEL* next;
+}LABEL;
 
 LABEL* create_label(char label_name[MAXLABELSIZE], int label_address) { //creat new label
 	LABEL *new_label;
