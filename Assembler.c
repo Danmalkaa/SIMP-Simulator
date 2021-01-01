@@ -10,7 +10,7 @@
 #include <string.h>
 #define MAX_LEN 256
 #define MAXLABELSIZE 10
-#define MAXSIZE 80
+#define MAXSIZE 500
 
 typedef struct LABEL
 {
