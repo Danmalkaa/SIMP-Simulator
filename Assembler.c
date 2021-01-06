@@ -21,6 +21,10 @@ typedef struct LABEL
 
 LABEL* create_label(char label_name[MAXLABELSIZE], int label_address) { //creat new label
     LABEL *new_label;
+	char word[5] = "word";
+
+	if (strcmp(word, label_name) == 0)
+		return NULL;
 
     new_label = (LABEL*)malloc(sizeof(LABEL)); //allocate memmory for new label
     if (new_label == NULL) {
