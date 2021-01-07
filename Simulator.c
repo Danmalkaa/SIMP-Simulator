@@ -189,7 +189,7 @@ int readdiskin(FILE* diskin, int diskmemmory[128][64]) { // copy diskin to matri
 int main(void)
 {
 	int *rd, *rs, *rt; // command registers
-	int pc = 0, immon = 0, clock = 0, cmdcounter = 0, irq2next, irq; //counters an controll
+	int pc = 0, immon = 0, clock = 0, cmdcounter = 0, irq2next, irq, reti = 0; //counters and controllers
 	FILE *imemin, *dmemin, *diskin, *irq2in; 
 	FILE *dmemout, *trace, *regout, *hwregtrace, *cycles;
 	FILE *leds, *monitor, *diskout;
@@ -220,8 +220,14 @@ int main(void)
 	irq2next = strtol(irq2line, NULL, 10);
 
 	irq = (irq0enable & irq0status) | (irq1enable & irq1status) | (irq2enable & irq2status); //irq check
-	if (irq == 1)
-		choosirq(*irq0enable, *irq0status, *irq1enable, *irq1status, *irq2enable, *irq2status);
+	if (irq == 1 & reti == 0) { //jump to irq handler
+		irqreturn = pc;
+		pc = irqhandler;
+		reti = 1;
+	}
+	else { //read the cmd 
+		
+	}
 }
 
 
