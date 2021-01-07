@@ -186,6 +186,19 @@ int readdiskin(FILE* diskin, int diskmemmory[128][64]) { // copy diskin to matri
 	return 0;
 }
 
+//this function print into trace file
+void printTrace(arg[trace], int pc,char inst, int $zero, int $imm, int $v0, int $a0, int $a1, int $t0, int $t1, int $t2, int $t3,int $s0, int $s1, int $s2, int $gp, int $sp, int $fp, int $ra)  {
+	int inst_int;
+	FILE *trace;
+
+	trace = fopen(arg[trace], "a");
+	if (trace == NULL)
+		return;
+	inst_int = strtol(inst, NULL, 4);
+	printf("%03X %05X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n", pc, inst_int, $zero, $imm, $v0, $a0, $a1, $t0, $t1, $t2, $t3, $s0, $s1, $s2, $gp, $sp, $fp, $ra);
+	return;
+}
+
 int main(void)
 {
 	int *rd, *rs, *rt; // command registers
