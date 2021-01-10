@@ -221,9 +221,7 @@ char* getValue(char * str, int mode)
 
 int main(void)
 {
-    
-//    char *string = ReadFile("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/fib.asm");
-    // Think if we need to free malloc allocated memory
+        // Think if we need to free malloc allocated memory
     FILE *fp, *fw_imemin, *dmemin; // check if needed as "a" mode or "w" mode
     fp = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/fib.asm", "r");
     if (fp == NULL) {
