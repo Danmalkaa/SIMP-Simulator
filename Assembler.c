@@ -133,52 +133,6 @@ int searchforlabel(LABEL *label_list, char *label_name)
         return(result);
 }
 
-void slice(const char *str, char *result, size_t start, size_t end)
-{
-    strncpy(result, str + start, end - start);
-}
-
-char* ReadFile(char *filename)
-{
-   char *buffer = NULL;
-   int string_size, read_size;
-   FILE *handler = fopen(filename, "r");
-
-   if (handler)
-   {
-       // Seek the last byte of the file
-       fseek(handler, 0, SEEK_END);
-       // Offset from the first to the last byte, or in other words, filesize
-       string_size = ftell(handler);
-       // go back to the start of the file
-       rewind(handler);
-
-       // Allocate a string that can hold it all
-       buffer = (char*) malloc(sizeof(char) * (string_size + 1) );
-
-       // Read it all in one operation
-       read_size = fread(buffer, sizeof(char), string_size, handler);
-
-       // fread doesn't set it so put a \0 in the last position
-       // and buffer is now officially a string
-       buffer[string_size] = '\0';
-
-       if (string_size != read_size)
-       {
-           // Something went wrong, throw away the memory and set
-           // the buffer to NULL
-           free(buffer);
-           buffer = NULL;
-       }
-
-       // Always remember to close the file.
-       fclose(handler);
-    }
-
-    return buffer;
-}
-
-
 /* an auxilary struct to be used as a dictionary */
 typedef struct  { char* str; char* hexa; }dict;
 
@@ -270,7 +224,7 @@ int main(void)
     
 //    char *string = ReadFile("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/fib.asm");
     // Think if we need to free malloc allocated memory
-    FILE *fp, *fw_imemin; // check if needed as "a" mode or "w" mode
+    FILE *fp, *fw_imemin, *dmemin; // check if needed as "a" mode or "w" mode
     fp = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/fib.asm", "r");
     if (fp == NULL) {
       perror("Failed: ");
@@ -278,12 +232,12 @@ int main(void)
     }
     LABEL *label_list = first_read(fp);
     rewind(fp);
-    char buffer[MAX_LEN];
+    char buffer[MAXSIZE];
     // -1 to allow room for NULL terminator for really long string
     fw_imemin = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/imemin.txt", "w");
-    while (fgets(buffer, MAX_LEN - 1, fp))
+    while (fgets(buffer, MAXSIZE - 1, fp))
     {
-        int is_imm=0;
+        int is_imm=0, is_word=0, add_hexa=0, val_hexa=0;
         // Remove trailing newline
         buffer[strcspn(buffer, "\n")] = 0; // sets the buffer to 0 after the index for end of line
         char * pch;
@@ -300,8 +254,15 @@ int main(void)
             parameters[k++] = pch;//assigns the command in the 5 commands 1-line array
             if (strcmp("$imm", pch) == 0)
                 is_imm = 1;
-            printf ("%s\n",pch); // just for debug
+	    if (strcmp(".word", pch) == 0)
+                is_word = 1;
             pch = strtok (NULL, " ,\t"); // gets next token
+	    if (k == 2)
+		if (parameters[1][1] == 'x' || parameters[1][1] == 'X')
+		    add_hexa = 1;
+	    if (k == 3)
+		if (parameters[2][1] == 'x' || parameters[2][1] == 'X')
+		    val_hexa = 1;
         }
         int imm,label_line;
         unsigned int imm_5;
@@ -318,20 +279,43 @@ int main(void)
         {
             imm_5 = (unsigned int)(imm & 0xFFFFF);
         }
+	if (is_word){
+            if (add_hexa && val_hexa){
+                address = strtol(parameters[1], NULL, 16);
+                value = strtol(parameters[2], NULL, 16);
+            }
+            else if (add_hexa){
+                address = strtol(parameters[1], NULL, 16);
+                value = strtol(parameters[2], NULL, 10);
+            }
+            else if (val_hexa){
+                value = strtol(parameters[2], NULL, 16);
+                address = strtol(parameters[1], NULL, 10);
+            }
+            else{
+                address = strtol(parameters[1], NULL, 10);
+                value = strtol(parameters[2], NULL, 10);
+            }
+	}
         char*  opcode;
         char *rd,*rs,*rt;
-
-        if (strcmp(".word", parameters[0]) == 0) // check if it is a .word command
-            continue;
-        opcode = getValue(parameters[0], 1);
-        rd = getValue(parameters[1], 2);
-        rs = getValue(parameters[2], 2);
-        rt = getValue(parameters[3], 2);
-        fprintf(fw_imemin,"%s%s%s%s\n",opcode,rd,rs,rt); // change to fprintf
-        if (is_imm)
-            fprintf(fw_imemin,"%05X\n",imm_5);
+	if (!is_word) { // not a .word command
+		opcode = getValue(parameters[0], 1);
+		rd = getValue(parameters[1], 2);
+		rs = getValue(parameters[2], 2);
+		rt = getValue(parameters[3], 2);
+		fprintf(fw_imemin,"%s%s%s%s\n",opcode,rd,rs,rt); // change to fprintf
+		if (is_imm)
+		    fprintf(fw_imemin,"%05X\n",imm_5);
+	}
+	else
+            datamemmory[address] = value;
     }
+    dmemin = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/dmemin.txt", "w");
+    for (int i = 0; i<4096; ++i)
+        fprintf(dmemin,"%08X\n",datamemmory[i]);
     fclose(fp);
+    fclose(dmemin);
     fclose(fw_imemin);
     return 0;
 }
