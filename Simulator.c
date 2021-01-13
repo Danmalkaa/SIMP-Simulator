@@ -257,7 +257,7 @@ void printmemmodata(FILE* dmemout, int datamemmory[4096]) { // print dmemout.txt
 	int i;
 
 	for (i = 0; i < 4096; i++) {
-		fprintf(dmemout, "%08X/n", datamemmory[i]);
+		fprintf(dmemout, "%08X\n", datamemmory[i]);
 	}
 	return;
 }
@@ -267,7 +267,7 @@ void printdiskmemmory(FILE* diskout, int diskmemmory[128][64]) { // print diskou
 
 	for (i = 0; i < 128; i++) {
 		for (j = 0; j < 64; j++) {
-			fprintf(diskout, "%08X/n", diskmemmory[i][j]);
+			fprintf(diskout, "%08X\n", diskmemmory[i][j]);
 		}
 	}
 	return;
@@ -288,10 +288,10 @@ void movedata(int diskcmd, int diskbuffer, int disksector, unsigned int clks, un
 
 
 //this function print into trace file
-void printTrace(FILE* trace, int pc, char opcode[3], int zero, int imm, int v0, int a0, int a1, int t0, int t1, int t2, int t3, int s0, int s1, int s2, int gp, int sp, int fp, int ra) {
+void printTrace(FILE* trace, int pc, char imemmory[10], int zero, int imm, int v0, int a0, int a1, int t0, int t1, int t2, int t3, int s0, int s1, int s2, int gp, int sp, int fp, int ra) {
 	int inst_int;
 
-	inst_int = strtol(opcode, NULL, 16);
+	inst_int = strtol(imemmory, NULL, 16);
 	fprintf(trace, "%03X %05X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n", pc, inst_int, zero, imm, v0, a0, a1, t0, t1, t2, t3, s0, s1, s2, gp, sp, fp, ra);
 	return;
 }
@@ -347,7 +347,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	unsigned int clks = 0, irq2next = 0, endofworkdisk = 0;
 	int diskcmd = 0, disksector = 0, diskbuffer = 0, diskstatus = 0; //hardware registers
 	int monitorcmd = 0, monitorx = 0, monitory = 0, monitordata = 0; //hardware registers
-	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irqhandler, &irq0status, &irq1status, &irq2status, &irqreturn, &leds, &reserved, &timerenable, &timercurrent, &timermax, &clks, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
+	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irq0status, &irq1status, &irq2status, &irqhandler, &irqreturn, &leds, &reserved, &timerenable, &timercurrent, &timermax, &clks, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
 	reg_dict register_from_hexa_dict[] =
 	{
 	{ &zero, '0'},
@@ -367,7 +367,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	{ &fp, 'E'},
 	{ &ra, 'F' },
 	};
-	int pc = 0, immon = 0, cmdcounter = 0, irq, reti = 0, halt_flag = 0; //counters and controllers
+	int pc = 0, immon = 0, cmdcounter = 0, irq, reti = 0, halt_flag = 0, oldled; //counters and controllers
 	FILE *imemin, *dmemin, *diskin, *irq2in;
 	FILE *dmemout, *trace, *regout, *hwregtrace, *cycles;
 	FILE *fleds, *monitor, *diskout;
@@ -408,6 +408,12 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	else
 		printf("irq2in.txt empty or corrupted\n");
 
+	fleds = fopen(argv[11], "w");
+	if (fleds == NULL)
+		printf("Faild to open leds.txt\n");
+	else
+		fclose(fleds);
+
 	hwregtrace = fopen(argv[9], "w");
 	if (hwregtrace == NULL)
 		printf("Faild to open hwregtracw.txt\n");
@@ -438,6 +444,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			int k = 0;
 			char parameters[5]; // init the 5 commands array in the line
 			pch = strtok(buffer, " ,\t:");
+			immon = 0;
 			while (*pch != '\0')
 			{
 				if (*pch == '\n') // reached end of line
@@ -492,7 +499,10 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 				//buffer[strcspn(buffer, "\n")] = "\0";
 				imm_str = strtok(buffer, " ,\t:");
 				immediate = strtol(imm_str, NULL, 16);
-				imm = immediate;
+				if (immediate > 524287)
+					imm = immediate - 1048576; //explain
+				else
+					imm = immediate;
 				clks++; //count second clock cycle for imm
 				if (timerenable) { //if timer is enable count the clock cycle
 					timercurrent++;
@@ -520,7 +530,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			opcode[1] = parameters[1];
 			opcode[2] = '\0';
 			if (trace != NULL)
-				printTrace(trace, pc, opcode, zero, imm, v0, a0, a1, t0, t1, t2, t3, s0, s1, s2, gp, sp, fp, ra); // print next row in trace.txt
+				printTrace(trace, pc, imemmory[pc], zero, imm, v0, a0, a1, t0, t1, t2, t3, s0, s1, s2, gp, sp, fp, ra); // print next row in trace.txt
 			func_struct *op_func;
 			op_func = getFunct(opcode, 1);
 			func_type = op_func->func_type;
@@ -529,6 +539,10 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			rt = getReg(parameters[4], 1, register_from_hexa_dict);
 			if (!strcmp(opcode, "12"))
 				is_reti = 1;
+			if (immon) // if we used imm advance pc by 2
+				pc += 2;
+			else // advance by 1
+				pc++;
 			switch (func_type)
 			{
 			case 1: // // the opcode can't assign values to imm or zero
@@ -554,56 +568,51 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					reti = 0;
 				}
 				else // jal
-					op_func->function(rd, NULL, NULL, NULL, NULL, &pc, &ra);
+						op_func->function(rd, NULL, NULL, NULL, NULL, &pc, &ra);
 				break;
 			case 4: // // the opcode uses dmemmory
 				op_func->function(rd, rs, rt, datamemmory, NULL, NULL, NULL);
 				break;
 			case 5: // // the opcode uses IO registers
-				if (*rs + *rt == 9 && !strcmp(opcode, "20")) { // out cmd for leds
-					int oldled = leds;
-					op_func->function(rd, rs, rd, NULL, io_reg_array, NULL, NULL);
-					if (oldled - leds) { // check if there was a change
-						fleds = fopen(argv[11], "a");
-						if (fleds != NULL) {
-							fprintf(fleds, "%u %08X\n", clks, leds); // print next line in leds.txt
-							fclose(fleds);
+				if (!strcmp(opcode, "13")) { //if in func
+					if (hwregtrace != NULL) {
+						fprintf(hwregtrace, "%u READ %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd); //print next read line in hwregtrace.txt
+					}
+					op_func->function(rd, rs, rt, NULL, io_reg_array, NULL, NULL);
+				}
+				else if (!strcmp(opcode, "14")) { //if out func
+					if (hwregtrace != NULL) {
+						fprintf(hwregtrace, "%u WRITE %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd);//print next write line in hwregtrace.txt
+					}
+					if (*rs + *rt == 9)  // out cmd for leds
+						oldled = leds;
+					if (diskstatus && ((*rs + *rt == 14) || (*rs + *rt == 15) || (*rs + *rt == 16)))  // dont take actionif asked to change disk registers while disk is busy
+						break;
+					else
+						op_func->function(rd, rs, rt, NULL, io_reg_array, NULL, NULL);
+					if (*rs + *rt == 9) {
+						if (oldled - leds) { // check if there was a change
+							fleds = fopen(argv[11], "a");
+							if (fleds != NULL) {
+								fprintf(fleds, "%u %08X\n", clks, leds); // print next line in leds.txt
+								fclose(fleds);
+							}
 						}
 					}
-					else if (!strcmp(opcode, "20") && diskstatus) { // dont take action if asked to change disk registers while disk is busy
-					}
-					else {
-						op_func->function(rd, rs, rd, NULL, io_reg_array, NULL, NULL); //
-					}
-					if (monitorcmd == 1) {
+					else if (monitorcmd == 1) {
 						monitorbuffer[monitory][monitorx] = monitordata;
 						monitorcmd = 0;
 					}
-					if (!strcmp(opcode, "20") && diskcmd && !diskstatus) { // start reading or writing
+					else if (diskcmd && !diskstatus) { // start reading or writing
 						endofworkdisk = clks + 1024;
 						diskstatus = 1;
 					}
-					if (!strcmp(opcode, "19")) { //print next line in hwregtrace.txt
-						if (hwregtrace != NULL) {
-							fprintf(hwregtrace, "%u READ %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd);
-						}
-					}
-					else { //print next line in hwregtrace.txt
-						if (hwregtrace != NULL) {
-							fprintf(hwregtrace, "%u WRITE %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd);
-						}
-					}
-					break;
+				}
+				break;
 			case 6: // // *Halt - need to add what else happens - prints etc.*
 				halt_flag = 1;
 				break;
-				}
 			}
-			printf("%d\n", imm); // debug
-			if (immon) // if we used imm advance pc by 2
-				pc += 2;
-			else // advance by 1
-				pc++;
 		}
 	}//*****************************************************************end of cmnd loop*******************************************************************************
 
@@ -638,9 +647,13 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			fclose(monitor);
 		}
 
-		fclose(hwregtrace);
-		fclose(trace);
-		fclose(irq2in);
+		if (hwregtrace!=NULL)
+			fclose(hwregtrace);
+		if (trace != NULL)
+			fclose(trace);
+		if (irq2in != NULL)
+			fclose(irq2in);
+		printf("finish");
 
 		return 0;
 }
