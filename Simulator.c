@@ -227,7 +227,7 @@ int readimemin(FILE* imemin, char imemmory[1028][10]) { // copy imemin to char a
 	return 0;
 }
 
-int readdiskin(FILE* diskin, int diskmemmory[128][64]) { // copy diskin to matrix
+int readdiskin(FILE* diskin, int diskmemmory[128][128]) { // copy diskin to matrix
 	char linestr[10];
 	int linedata, linenumber = 0, sectornumber = 0;
 	while (feof(diskin) == 0)
@@ -236,7 +236,7 @@ int readdiskin(FILE* diskin, int diskmemmory[128][64]) { // copy diskin to matri
 		linedata = strtol(linestr, NULL, 16);
 		diskmemmory[sectornumber][linenumber] = linedata;
 		linenumber++;
-		if (linenumber == 63) {
+		if (linenumber == 127) {
 			sectornumber++;
 			linenumber = 0;
 		}
@@ -253,19 +253,19 @@ void printmemmodata(FILE* dmemout, int datamemmory[4096]) { // print dmemout.txt
 	return;
 }
 
-void printdiskmemmory(FILE* diskout, int diskmemmory[128][64]) { // print diskout.txt
+void printdiskmemmory(FILE* diskout, int diskmemmory[128][128]) { // print diskout.txt
 	int i,j;
 
 	for (i = 0; i < 128; i++) {
-		for (j = 0; j < 64; j++) {
+		for (j = 0; j < 128; j++) {
 			fprintf(diskout, "%08X\n", diskmemmory[i][j]);
 		}
 	}
 	return;
 }
 
-//this function transfer data once every 16 clck cycles
-void movedata(int diskcmd, int diskbuffer, int disksector, unsigned int clks, unsigned int endofworkdisk, int diskmemmory[128][64], int datamemmory[4096]) {
+//this function transfer data once every 8 clck cycles
+void movedata(int diskcmd, int diskbuffer, int disksector, unsigned int clks, unsigned int endofworkdisk, int diskmemmory[128][128], int datamemmory[4096]) {
 	int offset;
 	offset = (endofworkdisk - clks) / 16;
 	if (diskcmd == 1) { // read cmd
@@ -373,7 +373,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	FILE *dmemout, *trace, *regout, *hwregtrace, *cycles;
 	FILE *fleds, *monitor, *diskout, *monitoryuv;
 	char irq2line[MAXSIZE], hwregnamelist[22][15], imemmory[1024][10];
-	int monitorbuffer[288][352] = { 0 }, datamemmory[4096] = { 0 }, diskmemmory[128][64] = { 0 }; //initialize arrays for inner memmory and matrix for disk memmory
+	int monitorbuffer[288][352] = { 0 }, datamemmory[4096] = { 0 }, diskmemmory[128][128] = { 0 }; //initialize arrays for inner memmory and matrix for disk memmory
 
 	initiateregnamelist(hwregnamelist); //initiate hwregnamelist
 
