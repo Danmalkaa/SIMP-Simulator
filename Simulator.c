@@ -34,13 +34,16 @@ void sll(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22]
 {
 	*rd = *rs << *rt;
 }
-void sra(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io) //check if correct- shift with sign extension
+void sra(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io) //Arithmetic shift
 {
 	*rd = *rs >> *rt;
 }
-void srl(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)//logical shift- check if correct
+void srl(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)//logical shift
 {
-	*rd = *rs >> *rt;
+	int logical = 0x7FFFFFFF, temp;
+	logical = logical >> *rt;
+	temp = *rs >> *rt;
+	*rd = temp & logical;
 }
 void beq(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)
 {
@@ -91,22 +94,10 @@ void sw(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22],
 }
 void in(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)
 {
-	int IORegNum;
-
-	IORegNum = *rs + *rt;
 	*rd = *io_reg_array[*rs + *rt];
 }
 void out(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)
 {
-	int IORegNum, led = 1;
-
-	IORegNum = *rs + *rt;
-	if (IORegNum == 9) {
-		if (*rd != 1)
-			led << *rd;
-		*io_reg_array[9] = *io_reg_array[9] | led;
-	}
-	else
 		*io_reg_array[*rs + *rt] = *rd;
 }
 void halt(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)
@@ -322,11 +313,21 @@ void initiateregnamelist(char regnamelist[22][15]) { //make a list of the hardwa
 	return;
 }
 
-void printmonitor(FILE* monitor, int monitorbuffer[288][352]) {
+void printmonitor(FILE* monitor, FILE* monitoryuv, int monitorbuffer[288][352]) {
 	int i, j;
-	for (i = 0; i < 352; i++) {
-		for (j = 0; j < 288; j++) {
-			fprintf(monitor, "%02X\n", monitorbuffer[j][i]);
+	for (i = 0; i < 288; i++) {
+		for (j = 0; j < 352; j++) {
+			fprintf(monitor, "%02X\n", monitorbuffer[i][j]);
+			fprintf(monitoryuv, "%c", monitorbuffer[i][j]);
+		}
+	}
+	return;
+}
+
+void printleds(FILE *fleds, int leds, int oldled, unsigned int clks) {
+	if (oldled - leds != 0) { // check if there was a change
+		if (fleds != NULL) {
+			fprintf(fleds, "%u %08X\n", clks, leds); // print next line in leds.txt
 		}
 	}
 	return;
@@ -344,10 +345,10 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	int irq0enable = 0, irq1enable = 0, irq2enable = 0, irqhandler = 0; //hardware registers
 	int irq0status = 0, irq1status = 0, irq2status = 0, irqreturn = 0; //hardware registers
 	int leds = 0, reserved = 0, timerenable = 0, timercurrent = 0, timermax = 0; //hardware registers
-	unsigned int clks = 0, irq2next = 0, endofworkdisk = 0;
+	unsigned int clks = -1, irq2next = 0, endofworkdisk = 0;
 	int diskcmd = 0, disksector = 0, diskbuffer = 0, diskstatus = 0; //hardware registers
 	int monitorcmd = 0, monitorx = 0, monitory = 0, monitordata = 0; //hardware registers
-	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irq0status, &irq1status, &irq2status, &irqhandler, &irqreturn, &leds, &reserved, &timerenable, &timercurrent, &timermax, &clks, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
+	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irq0status, &irq1status, &irq2status, &irqhandler, &irqreturn, &clks, &leds, &reserved, &timerenable, &timercurrent, &timermax, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
 	reg_dict register_from_hexa_dict[] =
 	{
 	{ &zero, '0'},
@@ -370,7 +371,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	int pc = 0, immon = 0, cmdcounter = 0, irq, reti = 0, halt_flag = 0, oldled; //counters and controllers
 	FILE *imemin, *dmemin, *diskin, *irq2in;
 	FILE *dmemout, *trace, *regout, *hwregtrace, *cycles;
-	FILE *fleds, *monitor, *diskout;
+	FILE *fleds, *monitor, *diskout, *monitoryuv;
 	char irq2line[MAXSIZE], hwregnamelist[22][15], imemmory[1024][10];
 	int monitorbuffer[288][352] = { 0 }, datamemmory[4096] = { 0 }, diskmemmory[128][64] = { 0 }; //initialize arrays for inner memmory and matrix for disk memmory
 
@@ -471,6 +472,11 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					if (*pch == '0')
 						rd_is_zero = 1;
 			}
+			if (clks == irq2next && irq2in != NULL) {
+				irq2status = 1;
+				fgets(irq2line, MAXSIZE, irq2in);
+				irq2next = strtol(irq2line, NULL, 10);
+			}
 			clks++; // count 1 clock cycle
 			if (timerenable) { //if timer is enable count the clock cycle
 				timercurrent++;
@@ -478,11 +484,6 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					timercurrent = 0;
 					irq0status = 1;
 				}
-			}
-			if (clks == irq2next && irq2in != NULL) {
-				irq2status = 1;
-				fgets(irq2line, MAXSIZE, irq2in);
-				irq2next = strtol(irq2line, NULL, 10);
 			}
 			if (!((endofworkdisk - clks) % 16) && diskstatus)
 				movedata(diskcmd, diskbuffer, disksector, clks, endofworkdisk, diskmemmory, datamemmory);
@@ -503,6 +504,11 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					imm = immediate - 1048576; //explain
 				else
 					imm = immediate;
+				if (clks == irq2next && irq2in != NULL) {
+					irq2status = 1;
+					fgets(irq2line, MAXSIZE, irq2in);
+					irq2next = strtol(irq2line, NULL, 10);
+				}
 				clks++; //count second clock cycle for imm
 				if (timerenable) { //if timer is enable count the clock cycle
 					timercurrent++;
@@ -510,11 +516,6 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 						timercurrent = 0;
 						irq0status = 1;
 					}
-				}
-				if (clks == irq2next && irq2in != NULL) {
-					irq2status = 1;
-					fgets(irq2line, MAXSIZE, irq2in);
-					irq2next = strtol(irq2line, NULL, 10);
 				}
 				if (!((endofworkdisk - clks) % 16) && diskstatus)
 					movedata(diskcmd, diskbuffer, disksector, clks, endofworkdisk, diskmemmory, datamemmory);
@@ -575,28 +576,25 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 				break;
 			case 5: // // the opcode uses IO registers
 				if (!strcmp(opcode, "13")) { //if in func
-					if (hwregtrace != NULL) {
-						fprintf(hwregtrace, "%u READ %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd); //print next read line in hwregtrace.txt
-					}
 					op_func->function(rd, rs, rt, NULL, io_reg_array, NULL, NULL);
+					if (hwregtrace != NULL) {
+						fprintf(hwregtrace, "%u READ %s %08X\n", clks, hwregnamelist[*rs + *rt], *io_reg_array[*rs+*rt]); //print next read line in hwregtrace.txt
+					}
 				}
 				else if (!strcmp(opcode, "14")) { //if out func
 					if (hwregtrace != NULL) {
 						fprintf(hwregtrace, "%u WRITE %s %08X\n", clks, hwregnamelist[*rs + *rt], *rd);//print next write line in hwregtrace.txt
 					}
-					if (*rs + *rt == 9)  // out cmd for leds
-						oldled = leds;
+					oldled = leds;
 					if (diskstatus && ((*rs + *rt == 14) || (*rs + *rt == 15) || (*rs + *rt == 16)))  // dont take actionif asked to change disk registers while disk is busy
 						break;
 					else
 						op_func->function(rd, rs, rt, NULL, io_reg_array, NULL, NULL);
 					if (*rs + *rt == 9) {
-						if (oldled - leds) { // check if there was a change
-							fleds = fopen(argv[11], "a");
-							if (fleds != NULL) {
-								fprintf(fleds, "%u %08X\n", clks, leds); // print next line in leds.txt
-								fclose(fleds);
-							}
+						fleds = fopen(argv[11], "a");
+						if (fleds != NULL) {
+							printleds(fleds, leds, oldled, clks);
+							fclose(fleds);
 						}
 					}
 					else if (monitorcmd == 1) {
@@ -625,7 +623,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 
 		cycles = fopen(argv[10], "w"); //print cycles.txt
 		if (cycles != NULL) {
-			fprintf(cycles, "%u\n%d\n", clks, cmdcounter);
+			fprintf(cycles, "%u\n%d\n", clks+1, cmdcounter);
 			fclose(cycles);
 		}
 
@@ -642,8 +640,9 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 		}
 
 		monitor = fopen(argv[12], "w"); //print monitor.txt
+		monitoryuv = fopen(argv[13], "wb"); //open binary file monitor.yuv
 		if (monitor != NULL) {
-			printmonitor(monitor, monitorbuffer);
+			printmonitor(monitor,monitoryuv, monitorbuffer);
 			fclose(monitor);
 		}
 
