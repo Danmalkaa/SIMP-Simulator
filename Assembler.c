@@ -242,6 +242,8 @@ int main(void)
         int k = 0;
         char* parameters[5]; // init the 5 commands array in the line
         pch = strtok (buffer," ,\t:");
+	if (pch == NULL)
+            continue;
         while (pch != NULL)
         {
             if (*pch == '#') // reached comments
