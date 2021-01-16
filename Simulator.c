@@ -644,6 +644,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 		if (monitor != NULL) {
 			printmonitor(monitor,monitoryuv, monitorbuffer);
 			fclose(monitor);
+			fclose(monitoryuv);
 		}
 
 		if (hwregtrace!=NULL)
