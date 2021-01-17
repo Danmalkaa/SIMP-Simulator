@@ -344,8 +344,8 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	int s0 = 0, s1 = 0, s2 = 0, gp = 0, sp = 0, fp = 0, ra = 0; //registers_vars
 	int irq0enable = 0, irq1enable = 0, irq2enable = 0, irqhandler = 0; //hardware registers
 	int irq0status = 0, irq1status = 0, irq2status = 0, irqreturn = 0; //hardware registers
-	int leds = 0, reserved = 0, timerenable = 0, timercurrent = 0, timermax = 0; //hardware registers
-	unsigned int clks = -1, irq2next = 0, endofworkdisk = 0;
+    	int  reserved = 0, timerenable = 0;//hardware registers
+    	unsigned int clks = -1, irq2next = 0, endofworkdisk = 0, leds = 0, timercurrent = 0, timermax = 0;
 	int diskcmd = 0, disksector = 0, diskbuffer = 0, diskstatus = 0; //hardware registers
 	int monitorcmd = 0, monitorx = 0, monitory = 0, monitordata = 0; //hardware registers
 	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irq0status, &irq1status, &irq2status, &irqhandler, &irqreturn, &clks, &leds, &reserved, &timerenable, &timercurrent, &timermax, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
