@@ -225,7 +225,7 @@ char* getValue(char * str, int mode)
 
 int main(void)
 {
-        // Think if we need to free malloc allocated memory
+    int datamemmory[4096] = { 0 };
     FILE *fp, *fw_imemin, *dmemin; // check if needed as "a" mode or "w" mode
     fp = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/fib.asm", "r");
     if (fp == NULL) {
