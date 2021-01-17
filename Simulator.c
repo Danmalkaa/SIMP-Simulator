@@ -108,10 +108,6 @@ void halt(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22
 
 /* auxilary structs to be used for functions */
 typedef void(*funct)(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io);
-typedef void(*funct_2)(int* rd, int* rs, int* rt, int* pc);
-typedef void(*funct_3)(int* rd, int* pc, int* ra_io);
-typedef void(*funct_4)(int* rd, int datamemmory[4096]);
-typedef void(*funct_5)(int* rd, int* rs, int* rt, int *io_reg_array[22]);
 
 
 typedef struct func_struct {
@@ -556,7 +552,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					}
 				}
 			}
-			int  *rs, *rt, *rd, no_imm_rd_opcode = 0, func_type = 0, is_reti = 0, loc = 0;
+			int  *rs, *rt, *rd, func_type = 0, is_reti = 0;
 			char opcode[3];
 			opcode[0] = parameters[0];
 			opcode[1] = parameters[1];
