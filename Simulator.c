@@ -368,7 +368,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	{ &fp, 'E'},
 	{ &ra, 'F' },
 	};
-	int pc = 0, immon = 0, cmdcounter = 0, irq, reti = 0, halt_flag = 0, oldled; //counters and controllers
+	int pc = 0, immon = 0, cmdcounter = 0, irq, reti = 0, halt_flag = 0, oldled,irq0ff = 0, irq1ff = 0, irq2ff = 0; //counters and controllers
 	FILE *imemin, *dmemin, *diskin, *irq2in;
 	FILE *dmemout, *trace, *regout, *hwregtrace, *cycles;
 	FILE *fleds, *monitor, *diskout, *monitoryuv;
@@ -472,25 +472,38 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					if (*pch == '0')
 						rd_is_zero = 1;
 			}
-			if (clks == irq2next && irq2in != NULL) {
+			if (irq0ff) {
+				irq0status = 1;
+				irq0ff = 0;
+			}
+			if (irq1ff) {
+				irq1status = 1;
+				irq1ff = 0;
+			}
+			if (irq2ff) {
 				irq2status = 1;
+				irq2ff = 0;
+			}
+			if (clks == irq2next && irq2in != NULL) {
+				if (irq2enable)
+					irq2ff = 1;
 				fgets(irq2line, MAXSIZE, irq2in);
 				irq2next = strtol(irq2line, NULL, 10);
-			}
-			clks++; // count 1 clock cycle
-			if (timerenable) { //if timer is enable count the clock cycle
-				timercurrent++;
-				if (timercurrent >= timermax) { //if timer reach max - call irq0
-					timercurrent = 0;
-					irq0status = 1;
-				}
 			}
 			if (!((endofworkdisk - clks) % 16) && diskstatus)
 				movedata(diskcmd, diskbuffer, disksector, clks, endofworkdisk, diskmemmory, datamemmory);
 			if (clks == endofworkdisk) {  // finish with the data transfer
 				diskcmd = 0;
 				diskstatus = 0;
-				irq1status = 1;
+				irq1ff = 1;
+			}
+			clks++; // count 1 clock cycle
+			if (timerenable) { //if timer is enable count the clock cycle
+				timercurrent++;
+				if (timercurrent >= timermax) { //if timer reach max - call irq0
+					timercurrent = 0;
+					irq0ff = 1;
+				}
 			}
 			if (immon)
 			{
@@ -504,25 +517,38 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					imm = immediate - 1048576; //explain
 				else
 					imm = immediate;
-				if (clks == irq2next && irq2in != NULL) {
+				if (irq0ff) {
+					irq0status = 1;
+					irq0ff = 0;
+				}
+				if (irq1ff) {
+					irq1status = 1;
+					irq1ff = 0;
+				}
+				if (irq2ff) {
 					irq2status = 1;
+					irq2ff = 0;
+				}
+				if (clks == irq2next && irq2in != NULL) {
+					if (irq2enable)
+						irq2ff = 1;
 					fgets(irq2line, MAXSIZE, irq2in);
 					irq2next = strtol(irq2line, NULL, 10);
-				}
-				clks++; //count second clock cycle for imm
-				if (timerenable) { //if timer is enable count the clock cycle
-					timercurrent++;
-					if (timercurrent >= timermax) { //if timer reach max - call irq0
-						timercurrent = 0;
-						irq0status = 1;
-					}
 				}
 				if (!((endofworkdisk - clks) % 16) && diskstatus)
 					movedata(diskcmd, diskbuffer, disksector, clks, endofworkdisk, diskmemmory, datamemmory);
 				if (clks == endofworkdisk) { // finish with the data transfer
 					diskcmd = 0;
 					diskstatus = 0;
-					irq1status = 1;
+					irq1ff = 1;
+				}
+				clks++; //count second clock cycle for imm
+				if (timerenable) { //if timer is enable count the clock cycle
+					timercurrent++;
+					if (timercurrent >= timermax) { //if timer reach max - call irq0
+						timercurrent = 0;
+						irq0ff = 1;
+					}
 				}
 			}
 			int  *rs, *rt, *rd, no_imm_rd_opcode = 0, func_type = 0, is_reti = 0, loc = 0;
