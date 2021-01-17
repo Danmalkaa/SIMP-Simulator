@@ -100,6 +100,10 @@ LABEL* first_read(FILE* rfile) {
                     l = 1;
                     break;
                 }
+                else if (strcmp("word", strs[i]) == 0){
+                    l=-1;
+                    break;
+                }
             }
             if (l == 0)
                 pc_counter += 1;
@@ -264,7 +268,7 @@ int main(void)
 		if (parameters[2][1] == 'x' || parameters[2][1] == 'X')
 		    val_hexa = 1;
         }
-        int imm,label_line;
+        int imm,label_line,address,value;
         unsigned int imm_5;
         label_line = searchforlabel(label_list, parameters[0]);
         if (label_line!=-1) // check if it is a label line
@@ -272,7 +276,10 @@ int main(void)
         imm = searchforlabel(label_list, parameters[4]); // check if there is a label in the last token
         if (imm ==-1) // no label
         {
-            imm = strtol(parameters[4], NULL, 10);
+            if (parameters[4][1] == 'x' || parameters[4][1] == 'X')
+                imm = strtol(parameters[4], NULL, 16);
+            else
+                imm = strtol(parameters[4], NULL, 10);
             imm_5 = (unsigned int)(imm & 0xFFFFF);
         }
         else
