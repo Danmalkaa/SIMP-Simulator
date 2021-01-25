@@ -113,25 +113,25 @@ LABEL* first_read(FILE* rfile) {
     return (label_list);
 }
 
-int searchforlabel(LABEL *label_list, char *label_name)
+int searchforlabel(LABEL *label_list, char *label_name) // searches for label_name in label_list
 {
     int result = 0, found;
     LABEL *current;
 
     current = label_list;
     found = 0;
-    while (current != NULL)
+    while (current != NULL) // iterates until the end of the list
     {
-        if (strcmp(current->LABELNAME, label_name) == 0) {
+        if (strcmp(current->LABELNAME, label_name) == 0) { // compares the string to the labelname in current label
             found = 1;
-            result = current->labeladdress;
+            result = current->labeladdress; // takes the label address
             break;
         }
         else {
-            current = current->next;
+            current = current->next; // next label
         }
     }
-    if (found == 0)
+    if (found == 0) // not found
         return (-1);
     else
         return(result);
