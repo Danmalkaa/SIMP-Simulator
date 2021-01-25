@@ -6,6 +6,7 @@
 #define MAXLABELSIZE 50
 #define MAXSIZE 500
 
+// all opcode functions below - generic inputs - and when called gets the right inputs according to the type of function (case-switch ahead) 
 void add(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io)
 {
 	*rd = *rs + *rt;
@@ -107,21 +108,22 @@ void halt(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22
 
 
 /* auxilary structs to be used for functions */
-typedef void(*funct)(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io);
+// funct type for the func_struct
+typedef void(*funct)(int* rd, int* rs, int* rt, int datamemmory[4096], int *io_reg_array[22], int* pc, int* ra_io); // generic inputs for all functions
 
 
 typedef struct func_struct {
-	funct function;
-	int func_type;
+	funct function; // the function
+	int func_type; // func type between 1-6
 }func_struct;
 
 
 
 /* an auxilary struct to be used as a dictionary */
-typedef struct { func_struct func; char* str; }func_dict;
+typedef struct { func_struct func; char* str; }func_dict; // function-opcode dictionary struct
 func_dict opcode_to_func_dict[] =
 {
-	{ add,1, "00"},
+	{ add,1, "00"}, // first 2 fields for func_struct, 3rd for hexa string
 	{ sub,1, "01"},
 	{ and,1, "02"},
 	{ or ,1, "03"},
@@ -144,22 +146,22 @@ func_dict opcode_to_func_dict[] =
 	{ out,5, "14" },
 	{ halt,6, "15" },
 };
-func_struct* getFunct(char * str, int mode)
+func_struct* getFunct(char * str, int mode) // gets hexa string and returns a pointer to the funct_struct
 {
 	func_dict* pSearch;
 	func_struct* selected = NULL;
 	if (str != NULL)
 	{
-		switch (mode)
+		switch (mode) // cases for future use
 		{
-		case 1: // command search
+		case 1: // opcode function search
 			/* runing on the dictionary to get the opcode selected */
 			for (pSearch = opcode_to_func_dict; pSearch != opcode_to_func_dict + sizeof(opcode_to_func_dict) / sizeof(opcode_to_func_dict[0]); pSearch++)
 			{
 				if (!strcmp(pSearch->str, str))
 					selected = &(pSearch->func);
 			}
-			if (selected == NULL)
+			if (selected == NULL) // not found
 				printf("%s is not a valid command name\n", str);
 			break;
 		}
@@ -170,21 +172,21 @@ func_struct* getFunct(char * str, int mode)
 }
 
 ///* an auxilary struct to be used as a dictionary */
-typedef struct { int* reg; char hexa; }reg_dict;
+typedef struct { int* reg; char hexa; }reg_dict; // hexa-register pointer dictionary struct
 int* getReg(char str, int mode, reg_dict register_from_hexa_dict[16])
 {
 	reg_dict rSearch;
 	int* selected = NULL;
 	if (str != '\0')
 	{
-		switch (mode)
+		switch (mode) // cases for future use
 		{
 		case 1: // command search
 			/* runing on the dictionary to get the register selected */
 			for (int i = 0; i < 16; i++)
 			{
 				rSearch = register_from_hexa_dict[i];
-				if (rSearch.hexa == str) {
+				if (rSearch.hexa == str) { // true == found
 					selected = rSearch.reg;
 					break;
 				}
@@ -204,9 +206,9 @@ int readdmemin(FILE* dmemin, int datamemmory[4096]) { // copy dmemin to array
 	int linedata, linenumber = 0;
 	while (feof(dmemin) == 0)
 	{
-		fgets(linestr, 10, dmemin);
-		linedata = strtol(linestr, NULL, 16);
-		datamemmory[linenumber] = linedata;
+		fgets(linestr, 10, dmemin); // reads line by line
+		linedata = strtol(linestr, NULL, 16); // string to long int
+		datamemmory[linenumber] = linedata; // saves the num in the array
 		linenumber++;
 	}
 	return 0;
@@ -216,7 +218,7 @@ int readimemin(FILE* imemin, char imemmory[1028][10]) { // copy imemin to char a
 	int linenumber = 0;
 	while (feof(imemin) == 0)
 	{
-		fgets(imemmory[linenumber], 10, imemin);
+		fgets(imemmory[linenumber], 10, imemin);// reads line by line
 		strtok(imemmory[linenumber], "\n"); // replace \n with \0
 		linenumber++;
 	}
@@ -228,11 +230,11 @@ int readdiskin(FILE* diskin, int diskmemmory[128][128]) { // copy diskin to matr
 	int linedata, linenumber = 0, sectornumber = 0;
 	while (feof(diskin) == 0)
 	{
-		fgets(linestr, 10, diskin);
-		linedata = strtol(linestr, NULL, 16);
-		diskmemmory[sectornumber][linenumber] = linedata;
+		fgets(linestr, 10, diskin);// reads line by line
+		linedata = strtol(linestr, NULL, 16); // string to long int
+		diskmemmory[sectornumber][linenumber] = linedata; // saves the num in the sector in the array
 		linenumber++;
-		if (linenumber == 127) {
+		if (linenumber == 127) { // reached last line in sector
 			sectornumber++;
 			linenumber = 0;
 		}
@@ -240,16 +242,16 @@ int readdiskin(FILE* diskin, int diskmemmory[128][128]) { // copy diskin to matr
 	return 0;
 }
 
-void printmemmodata(FILE* dmemout, int datamemmory[4096]) { // print dmemout.txt
+void printmemmodata(FILE* dmemout, int datamemmory[4096]) { // gets file pointer to dmemout.txt and prints datamemmory to it
 	int i;
 
 	for (i = 0; i < 4096; i++) {
-		fprintf(dmemout, "%08X\n", datamemmory[i]);
+		fprintf(dmemout, "%08X\n", datamemmory[i]); //prints to dmemout file
 	}
 	return;
 }
 
-void printdiskmemmory(FILE* diskout, int diskmemmory[128][128]) { // print diskout.txt
+void printdiskmemmory(FILE* diskout, int diskmemmory[128][128]) { //gets file pointer to diskout.txt and prints diskmemmory to it 
 	int i,j;
 
 	for (i = 0; i < 128; i++) {
@@ -309,7 +311,7 @@ void initiateregnamelist(char regnamelist[22][15]) { //make a list of the hardwa
 	return;
 }
 
-void printmonitor(FILE* monitor, FILE* monitoryuv, int monitorbuffer[288][352]) {
+void printmonitor(FILE* monitor, FILE* monitoryuv, int monitorbuffer[288][352]) { // prints monitor buffer to monitoryuv and monitor
 	int i, j;
 	for (i = 0; i < 288; i++) {
 		for (j = 0; j < 352; j++) {
@@ -346,7 +348,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 	int diskcmd = 0, disksector = 0, diskbuffer = 0, diskstatus = 0; //hardware registers
 	int monitorcmd = 0, monitorx = 0, monitory = 0, monitordata = 0; //hardware registers
 	int *io_reg_array[22] = { &irq0enable, &irq1enable, &irq2enable, &irq0status, &irq1status, &irq2status, &irqhandler, &irqreturn, &clks, &leds, &reserved, &timerenable, &timercurrent, &timermax, &diskcmd, &disksector, &diskbuffer, &diskstatus, &monitorcmd, &monitorx, &monitory, &monitordata };
-	reg_dict register_from_hexa_dict[] =
+	reg_dict register_from_hexa_dict[] =  // register pointers- hexa chars dictionary
 	{
 	{ &zero, '0'},
 	{ &imm, '1'},
@@ -436,14 +438,12 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			// -1 to allow room for NULL terminator for long string
 			int rd_is_zero = 0, imm_reg_count = 0, snd_imm_reg_count = 0, trd_imm_reg_count = 0;
 			int immediate = 0;
-			// Remove trailing newline
-			//buffer[strcspn(buffer, "\n")] = 0; // sets the buffer to 0 after the index for end of line
 			char * pch = NULL;
 			int k = 0;
 			char parameters[5]; // init the 5 commands array in the line
-			pch = strtok(buffer, " ,\t:");
+			pch = strtok(buffer, " ,\t:"); //cleans current line
 			immon = 0;
-			while (*pch != '\0')
+			while (*pch != '\0') // while not end of string iterates over chars
 			{
 				if (*pch == '\n') // reached end of line
 				{
