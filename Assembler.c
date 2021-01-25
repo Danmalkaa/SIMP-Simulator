@@ -100,7 +100,7 @@ LABEL* first_read(FILE* rfile) {
                     l = 1;
                     break;
                 }
-                else if (strcmp("word", strs[i]) == 0){
+                else if (strcmp("word", strs[i]) == 0){ // handles .word - not counting pc
                     l=-1;
                     break;
                 }
@@ -190,7 +190,7 @@ dict command_to_hexa_dict [] =
 char* getValue(char * str, int mode)
 {
     dict* pSearch;
-    char * selected = NULL;
+    char * selected = NULL; // 
     if (str != NULL)
     {
         switch (mode)
@@ -261,12 +261,14 @@ int main(void)
 	    if (strcmp(".word", pch) == 0)
                 is_word = 1;
             pch = strtok (NULL, " ,\t"); // gets next token
-	    if (k == 2)
-		if (parameters[1][1] == 'x' || parameters[1][1] == 'X')
-		    add_hexa = 1;
-	    if (k == 3)
-		if (parameters[2][1] == 'x' || parameters[2][1] == 'X')
-		    val_hexa = 1;
+            if (is_word){ // handles hexa values for .word command
+                if (k == 2)
+                    if (parameters[1][1] == 'x' || parameters[1][1] == 'X')
+                        add_hexa = 1; // address hexa flag
+                if (k == 3)
+                    if (parameters[2][1] == 'x' || parameters[2][1] == 'X')
+                        val_hexa = 1; // value hexa flag
+            }
         }
         int imm,label_line,address,value;
         unsigned int imm_5;
@@ -274,32 +276,32 @@ int main(void)
         if (label_line!=-1) // check if it is a label line
             continue;
         imm = searchforlabel(label_list, parameters[4]); // check if there is a label in the last token
-        if (imm ==-1) // no label
+        if (imm ==-1) // not label
         {
-            if (parameters[4][1] == 'x' || parameters[4][1] == 'X')
+            if (parameters[4][1] == 'x' || parameters[4][1] == 'X') // handles immediate hexa values
                 imm = strtol(parameters[4], NULL, 16);
             else
-                imm = strtol(parameters[4], NULL, 10);
+                imm = strtol(parameters[4], NULL, 10); // decimal values
             imm_5 = (unsigned int)(imm & 0xFFFFF);
         }
-        else
+        else // gets label line from imm
         {
             imm_5 = (unsigned int)(imm & 0xFFFFF);
         }
-	if (is_word){
-            if (add_hexa && val_hexa){
+	if (is_word){ // a word command
+            if (add_hexa && val_hexa){ // both value and address are hexa
                 address = strtol(parameters[1], NULL, 16);
                 value = strtol(parameters[2], NULL, 16);
             }
-            else if (add_hexa){
+            else if (add_hexa){ // only address is hexa
                 address = strtol(parameters[1], NULL, 16);
                 value = strtol(parameters[2], NULL, 10);
             }
-            else if (val_hexa){
+            else if (val_hexa){ // only value is hexa
                 value = strtol(parameters[2], NULL, 16);
                 address = strtol(parameters[1], NULL, 10);
             }
-            else{
+            else{ // none is hexa
                 address = strtol(parameters[1], NULL, 10);
                 value = strtol(parameters[2], NULL, 10);
             }
@@ -319,7 +321,7 @@ int main(void)
             datamemmory[address] = value;
     }
     dmemin = fopen("/Users/danmalka/Documents/לימודים/שנה\ ג/סמסטר\ א/מבנה\ המחשב/פרויקט/SIMP\ Assembler/dmemin.txt", "w");
-    for (int i = 0; i<4096; ++i)
+    for (int i = 0; i<4096; ++i) // iterates over datamemmory and prints to file its values
         fprintf(dmemin,"%08X\n",datamemmory[i]);
     fclose(fp);
     fclose(dmemin);
