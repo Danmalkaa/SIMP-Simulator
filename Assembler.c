@@ -270,7 +270,7 @@ int main(void)
                         val_hexa = 1; // value hexa flag
             }
         }
-        int imm,label_line,address,value;
+        int imm,label_line,address=0,value=0;
         unsigned int imm_5;
         label_line = searchforlabel(label_list, parameters[0]);
         if (label_line!=-1) // check if it is a label line
@@ -309,12 +309,12 @@ int main(void)
         char*  opcode;
         char *rd,*rs,*rt;
 	if (!is_word) { // not a .word command
-		opcode = getValue(parameters[0], 1);
-		rd = getValue(parameters[1], 2);
-		rs = getValue(parameters[2], 2);
-		rt = getValue(parameters[3], 2);
-		fprintf(fw_imemin,"%s%s%s%s\n",opcode,rd,rs,rt); // change to fprintf
-		if (is_imm)
+		opcode = getValue(parameters[0], 1); //gets opcode
+		rd = getValue(parameters[1], 2); // gets current rd register hexa
+		rs = getValue(parameters[2], 2);// gets current rs register hexa
+		rt = getValue(parameters[3], 2);// gets current rt register hexa
+		fprintf(fw_imemin,"%s%s%s%s\n",opcode,rd,rs,rt); // prints current line to file
+		if (is_imm) // print one more line if uses immediate
 		    fprintf(fw_imemin,"%05X\n",imm_5);
 	}
 	else
