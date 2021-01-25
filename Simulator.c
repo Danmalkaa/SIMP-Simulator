@@ -455,19 +455,19 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 				if (k > 1) { // k=0,1 are for opcode
 					if (*pch == '1') { // saves which register is the immediate one in the current line
 						immon = 1;
-						if (imm_reg_count) { // if one is already imm
+						if (imm_reg_count) { // counter for case 1 in later switch-case
 							if (snd_imm_reg_count) // if a second one is already imm - snd=second
 								trd_imm_reg_count = k; // trd=third
 							else
 								snd_imm_reg_count = k;
 						}
-						else
+						else //first imm reg count 
 							imm_reg_count = k;
 					}
 				}
 				if (k == 2)
 					if (*pch == '0')
-						rd_is_zero = 1;
+						rd_is_zero = 1; // flag for case 1
 			}
 			if (irq0ff) {
 				irq0status = 1;
@@ -504,7 +504,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 						irq0ff = 1;
 				}
 			}
-			if (immon)
+			if (immon) // immediate flag is true
 			{
 				immediate = 0;
 				char* imm_str = NULL;
@@ -556,22 +556,22 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			char opcode[3];
 			opcode[0] = parameters[0];
 			opcode[1] = parameters[1];
-			opcode[2] = '\0';
+			opcode[2] = '\0'; // merge opcode chars to string
 			if (trace != NULL)
 				printTrace(trace, pc, imemmory[pc], zero, imm, v0, a0, a1, t0, t1, t2, t3, s0, s1, s2, gp, sp, fp, ra); // print next row in trace.txt
 			func_struct *op_func;
-			op_func = getFunct(opcode, 1);
-			func_type = op_func->func_type;
-			rd = getReg(parameters[2], 1, register_from_hexa_dict);
+			op_func = getFunct(opcode, 1); // current opcode function - returns a pointer to funct_struct
+			func_type = op_func->func_type; // for the cases
+			rd = getReg(parameters[2], 1, register_from_hexa_dict); // gets register from the dictionary
 			rs = getReg(parameters[3], 1, register_from_hexa_dict);
 			rt = getReg(parameters[4], 1, register_from_hexa_dict);
-			if (!strcmp(opcode, "12"))
+			if (!strcmp(opcode, "12")) // a reti function
 				is_reti = 1;
 			if (immon) // if we used imm advance pc by 2
 				pc += 2;
 			else // advance by 1
 				pc++;
-			switch (func_type)
+			switch (func_type) // type of function - 1-6
 			{
 			case 1: // // the opcode can't assign values to imm or zero
 				if (immon) {
@@ -620,7 +620,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					if (*rs + *rt == 9) {
 						fleds = fopen(argv[11], "a");
 						if (fleds != NULL) {
-							printleds(fleds, leds, oldled, clks);
+							printleds(fleds, leds, oldled, clks); //print leds
 							fclose(fleds);
 						}
 					}
