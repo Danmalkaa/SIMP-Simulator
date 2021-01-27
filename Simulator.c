@@ -265,7 +265,7 @@ void printdiskmemmory(FILE* diskout, int diskmemmory[128][128]) { //gets file po
 //this function transfer data once every 8 clck cycles
 void movedata(int diskcmd, int diskbuffer, int disksector, unsigned int clks, unsigned int endofworkdisk, int diskmemmory[128][128], int datamemmory[4096]) {
 	int offset;
-	offset = (endofworkdisk - clks) / 16;
+	offset = (endofworkdisk - clks) / 16; //detrmine the part of the data that going to be transfer
 	if (diskcmd == 1) { // read cmd
 		datamemmory[diskbuffer + offset] = diskmemmory[disksector][offset]; 
 	}
@@ -481,13 +481,13 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 				irq2status = 1;
 				irq2ff = 0;
 			}
-			if (clks == irq2next && irq2in != NULL) {
+			if (clks == irq2next && irq2in != NULL) { //if clks cycle equal to next irq2
 				if (irq2enable)
 					irq2ff = 1;
 				fgets(irq2line, MAXSIZE, irq2in);
 				irq2next = strtol(irq2line, NULL, 10);
 			}
-			if (!((endofworkdisk - clks) % 16) && diskstatus)
+			if (!((endofworkdisk - clks) % 16) && diskstatus) // after passing 8 cycles from last data transfer and if the transfer did not finished
 				movedata(diskcmd, diskbuffer, disksector, clks, endofworkdisk, diskmemmory, datamemmory);
 			if (clks == endofworkdisk) {  // finish with the data transfer
 				diskcmd = 0;
@@ -512,11 +512,11 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 				//buffer[strcspn(buffer, "\n")] = "\0";
 				imm_str = strtok(buffer, " ,\t:");
 				immediate = strtol(imm_str, NULL, 16);
-				if (immediate > 524287)
-					imm = immediate - 1048576; //explain
+				if (immediate > 524287) //check if the number is negative
+					imm = immediate - 1048576; //return the real number
 				else
 					imm = immediate;
-				if (irq0ff) {
+				if (irq0ff) { //check irq flipflops and chane their status
 					irq0status = 1;
 					irq0ff = 0;
 				}
@@ -617,14 +617,14 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 						break;
 					else
 						op_func->function(rd, rs, rt, NULL, io_reg_array, NULL, NULL);
-					if (*rs + *rt == 9) {
+					if (*rs + *rt == 9) { //if leds command has taken place
 						fleds = fopen(argv[11], "a");
 						if (fleds != NULL) {
 							printleds(fleds, leds, oldled, clks); //print leds
 							fclose(fleds);
 						}
 					}
-					else if (monitorcmd == 1) {
+					else if (monitorcmd == 1) { //change monitor and monitor status
 						monitorbuffer[monitory][monitorx] = monitordata;
 						monitorcmd = 0;
 					}
@@ -634,7 +634,7 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 					}
 				}
 				break;
-			case 6: // // *Halt - need to add what else happens - prints etc.*
+			case 6: // // *Halt - stop reading commands. finish printing and execute*
 				halt_flag = 1;
 				break;
 			}
@@ -680,7 +680,6 @@ int main(int argc, char* argv[]) // *add the arguments for the input*
 			fclose(trace);
 		if (irq2in != NULL)
 			fclose(irq2in);
-		printf("finish");
 
 		return 0;
 }
